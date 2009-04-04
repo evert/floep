@@ -42,6 +42,7 @@ parser = OptionParser(
     version="floep 0.1",
     description="Executes a command on multiple hosts"
 )
+parser.disable_interspersed_args()
 parser.add_option('-g','--group',default="all", type="string", help="Execute command on group", dest="group")
 parser.add_option('-q','--quiet',action="store_false", help="Display only server output", dest="verbose", default=True)
 (options,args) = parser.parse_args()
