@@ -11,15 +11,15 @@ from optparse import OptionParser
 def getServers(sectionname) :
 
     servers = [] 
-    if not config.has_section(sectionname) : raise 'Server or group ' + sectionname + ' not found in ' + configfile 
+    if not config.has_section(sectionname): raise 'Server or group ' + sectionname + ' not found in ' + configfile 
 
     # Checking if the configuration file has a 'host' section 
-    if config.has_option(sectionname,'host') :
+    if config.has_option(sectionname,'host'):
         servers.append(config.get(sectionname,'host'))
 
     # Checking if the configuration has a 'group' section
 
-    if (config.has_option(sectionname,'group')) :
+    if (config.has_option(sectionname,'group')):
         grouplist = config.get(sectionname,'group').split(',')
         for i in grouplist : servers+=getServers(i)
 
@@ -44,9 +44,9 @@ config = ConfigParser.RawConfigParser()
 config.read(os.path.dirname(sys.argv[0]) + '/floep.cfg')
 config.read('floep.cfg')
 
-if config.has_option('settings','commandTemplate') :
+if config.has_option('settings','commandTemplate'):
     commandTemplate = config.get('settings','commandTemplate')
-else :
+else:
     commandTemplate = 'ssh %(host)s %(command)s'
 
 parser = OptionParser(
@@ -59,11 +59,13 @@ parser.add_option('-q','--quiet',action="store_false", help="Display only server
 parser.add_option('-c','--command',default=commandTemplate, dest="command", help="The commandline to execute for each host") 
 (options,args) = parser.parse_args()
 
-if options.verbose : print "floep 0.1" 
+if options.verbose: 
+    print "floep 0.1" 
 
 command = " ".join(args)
 
-if command.strip() == "" : parser.error('no command given')
+if command.strip() == "":
+    parser.error('no command given')
 
 
 
@@ -80,15 +82,17 @@ while len(threadlist) > 0 :
     for server in threadlist :
 
         foundOne = False 
-        if not server.isAlive() :
+        if not server.isAlive():
             server.join()
-            if options.verbose : print "Result from", server.host, ":"
+            if options.verbose: 
+                print "Result from", server.host, ":"
             print server.result,
-            if options.verbose : print ""
+            if options.verbose: 
+                print ""
             threadlist.remove(server)
             foundOne = True
 
-        if not foundOne :
+        if not foundOne:
             time.sleep(0.010)
 
 
