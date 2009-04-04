@@ -10,7 +10,7 @@ from optparse import OptionParser
 def getServers(sectionname) :
 
     servers = [] 
-    if not config.has_section(sectionname): raise GroupNotFoundError('Server or group ' + sectionname + ' not found in configuration') 
+    if not config.has_section(sectionname): raise RuntimeError('Server or group ' + sectionname + ' not found in configuration') 
 
     # Checking if the configuration file has a 'host' section 
     if config.has_option(sectionname,'host'):
@@ -20,7 +20,8 @@ def getServers(sectionname) :
 
     if (config.has_option(sectionname,'group')):
         grouplist = config.get(sectionname,'group').split(',')
-        for i in grouplist : servers+=getServers(i)
+        for i in grouplist : 
+            servers+=getServers(i)
 
     return servers
 
@@ -38,13 +39,6 @@ class FloepCommand(Thread) :
         strresult = ''
         for line in result : strresult+=line 
         self.result = strresult
-
-class GroupNotFoundError(Exception):
-    def __init__(self, value) :
-        self.value = value
-
-    def __str__(self) :
-        return repr(self.value)
 
 config = ConfigParser.RawConfigParser()
 config.read(os.path.dirname(sys.argv[0]) + '/floep.cfg')
@@ -80,16 +74,14 @@ parser.add_option(
     dest="command", 
     help="The commandline to execute for each host")
 
-(options,args) = parser.parse_args()
-
+options,args = parser.parse_args()
 if options.verbose: 
     print "floep 0.1" 
 
-command = " ".join(args)
-
-if command.strip() == "":
+if not args :
     parser.error('no command given')
 
+command = " ".join(args)
 
 
 
@@ -101,10 +93,9 @@ for server in servers :
   threadlist.append(current)
   current.start()
 
-while len(threadlist) > 0 : 
+while threadlist : 
     for server in threadlist :
 
-        foundOne = False 
         if not server.isAlive():
             server.join()
             if options.verbose: 
@@ -113,9 +104,9 @@ while len(threadlist) > 0 :
             if options.verbose: 
                 print ""
             threadlist.remove(server)
-            foundOne = True
+            break
 
-        if not foundOne:
-            time.sleep(0.010)
+    else :
+        time.sleep(0.010)
 
 
