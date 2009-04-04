@@ -6,9 +6,14 @@ import sys
 import time
 from threading import Thread
 from optparse import OptionParser
+import subprocess 
 
 def getServers(sectionname) :
-
+    """
+    Returns a list of hostnames for a given sectionname in the configuration file. 
+    
+    If the section was a group, we'll traverse the configuration further
+    """
     servers = [] 
     if not config.has_section(sectionname): raise RuntimeError('Server or group ' + sectionname + ' not found in configuration') 
 
@@ -26,7 +31,11 @@ def getServers(sectionname) :
     return servers
 
 class FloepCommand(Thread) :
+    """
+    This is our worker process
 
+    It's responsible for executing the command, and storing the results afterwards
+    """
     def __init__ (self,host,command) :
         Thread.__init__(self)
         self.host = host
@@ -34,9 +43,8 @@ class FloepCommand(Thread) :
 
     def run(self) :
         commandstring = options.command % {'host' : self.host, 'command' : self.command} 
-        proc = os.popen(commandstring)
-        result = proc.read()
-        self.result = result
+        process = subprocess.Popen(commandstring,stderr=subprocess.STDOUT,stdout=subprocess.PIPE,shell=True).stdout
+        self.result = process.read() 
 
 config = ConfigParser.RawConfigParser()
 config.read(os.path.dirname(sys.argv[0]) + '/floep.cfg')
