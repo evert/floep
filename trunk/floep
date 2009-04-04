@@ -50,6 +50,7 @@ class FloepCommand(Thread) :
 def readConfiguration() :
 
     global commandTemplate
+    global defaultGroup
     config.read(os.path.dirname(sys.argv[0]) + '/floep.cfg')
     config.read('floep.cfg')
 
@@ -57,6 +58,11 @@ def readConfiguration() :
         commandTemplate = config.get('settings','commandTemplate')
     else:
         commandTemplate = 'ssh %(host)s %(command)s'
+
+    if config.has_option('settings','defaultGroup'):
+        defaultGroup = config.get('settings','defaultGroup')
+    else:
+        defaultGroup = 'all'
 
 def parseOptions() :
     global commandTemplate
@@ -67,7 +73,7 @@ def parseOptions() :
     parser.disable_interspersed_args()
     parser.add_option(
         '-g','--group',
-        default="all", 
+        default=defaultGroup, 
         type="string", 
         help="Execute command on group", 
         dest="group")
