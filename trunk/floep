@@ -35,10 +35,8 @@ class FloepCommand(Thread) :
     def run(self) :
         commandstring = options.command % {'host' : self.host, 'command' : self.command} 
         proc = os.popen(commandstring)
-        result = proc.readlines()
-        strresult = ''
-        for line in result : strresult+=line 
-        self.result = strresult
+        result = proc.read()
+        self.result = result
 
 config = ConfigParser.RawConfigParser()
 config.read(os.path.dirname(sys.argv[0]) + '/floep.cfg')
