@@ -1,0 +1,71 @@
+#!/usr/bin/env python
+
+import ConfigParser
+import os
+import sys 
+from threading import Thread
+from optparse import OptionParser
+
+
+def getServers(sectionname) :
+
+    servers = set();
+    if not config.has_section(sectionname) : raise 'Server or group ' + sectionname + ' not found in ' + configfile 
+
+    # Checking if the configuration file has a 'host' section 
+    if config.has_option(sectionname,'host') :
+        servers.add(config.get(sectionname,'host'))
+
+    # Checking if the configuration has a 'group' section
+
+    if (config.has_option(sectionname,'group')) :
+        grouplist = config.get(sectionname,'group').split(',')
+        for i in grouplist : servers|=getServers(i)
+
+    return servers
+
+class FloepCommand(Thread) :
+
+    def __init__ (self,hostname,command) :
+        Thread.__init__(self)
+        self.hostname = hostname
+        self.command = command
+
+    def run(self) :
+        proc = os.popen('ssh ' + self.hostname + ' ' + self.command);
+        result = proc.readlines()
+        strresult = ''
+        for line in result : strresult+=line 
+        self.result = strresult
+
+parser = OptionParser(
+    version="floep 0.1",
+    description="Executes a command on multiple hosts"
+)
+parser.add_option('-g','--group',default="all", type="string", help="Execute command on group", dest="group")
+(options,args) = parser.parse_args()
+
+print "floep 0.1" 
+
+command = " ".join(args)
+
+if command.strip() == "" : parser.error('no command given')
+
+configfile = os.path.dirname(sys.argv[0]) + '/floep.cfg'
+
+config = ConfigParser.RawConfigParser()
+config.read(configfile)
+
+servers = getServers(options.group)
+
+threadlist = []
+for server in servers :
+  current = FloepCommand(server,command)
+  threadlist.append(current)
+  current.start()
+
+for server in threadlist :
+    server.join()
+    print "Result from", server.hostname, ":"
+    print server.result, "\n"
+
