@@ -9,18 +9,18 @@ from optparse import OptionParser
 
 def getServers(sectionname) :
 
-    servers = set();
+    servers = [] 
     if not config.has_section(sectionname) : raise 'Server or group ' + sectionname + ' not found in ' + configfile 
 
     # Checking if the configuration file has a 'host' section 
     if config.has_option(sectionname,'host') :
-        servers.add(config.get(sectionname,'host'))
+        servers.append(config.get(sectionname,'host'))
 
     # Checking if the configuration has a 'group' section
 
     if (config.has_option(sectionname,'group')) :
         grouplist = config.get(sectionname,'group').split(',')
-        for i in grouplist : servers|=getServers(i)
+        for i in grouplist : servers+=getServers(i)
 
     return servers
 
@@ -32,7 +32,7 @@ class FloepCommand(Thread) :
         self.command = command
 
     def run(self) :
-        proc = os.popen('ssh ' + self.hostname + ' ' + self.command);
+        proc = os.popen('ssh ' + self.hostname + ' ' + self.command)
         result = proc.readlines()
         strresult = ''
         for line in result : strresult+=line 
@@ -43,9 +43,10 @@ parser = OptionParser(
     description="Executes a command on multiple hosts"
 )
 parser.add_option('-g','--group',default="all", type="string", help="Execute command on group", dest="group")
+parser.add_option('-q','--quiet',action="store_false", help="Display only server output", dest="verbose", default=True)
 (options,args) = parser.parse_args()
 
-print "floep 0.1" 
+if options.verbose : print "floep 0.1" 
 
 command = " ".join(args)
 
@@ -66,6 +67,7 @@ for server in servers :
 
 for server in threadlist :
     server.join()
-    print "Result from", server.hostname, ":"
-    print server.result, "\n"
+    if options.verbose : print "Result from", server.hostname, ":"
+    print server.result,
+    if options.verbose : print ""
 
