@@ -1,3 +1,7 @@
+[settings]
+defaultGroup=all
+commandTemplate=ssh %(host)s %(command)s 
+
 [all]
 group=www,db
 
