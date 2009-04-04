@@ -36,83 +36,101 @@ class FloepCommand(Thread) :
 
     It's responsible for executing the command, and storing the results afterwards
     """
-    def __init__ (self,host,command) :
+    def __init__ (self,host,command,options) :
         Thread.__init__(self)
         self.host = host
         self.command = command
+        self.options = options
 
     def run(self) :
-        commandstring = options.command % {'host' : self.host, 'command' : self.command} 
+        commandstring = self.options.command % {'host' : self.host, 'command' : self.command}
         process = subprocess.Popen(commandstring,stderr=subprocess.STDOUT,stdout=subprocess.PIPE,shell=True).stdout
         self.result = process.read() 
 
+def readConfiguration() :
+
+    global commandTemplate
+    config.read(os.path.dirname(sys.argv[0]) + '/floep.cfg')
+    config.read('floep.cfg')
+
+    if config.has_option('settings','commandTemplate'):
+        commandTemplate = config.get('settings','commandTemplate')
+    else:
+        commandTemplate = 'ssh %(host)s %(command)s'
+
+def parseOptions() :
+    global commandTemplate
+    parser = OptionParser(
+        version="floep 0.1",
+        description="Executes a command on multiple hosts"
+    )
+    parser.disable_interspersed_args()
+    parser.add_option(
+        '-g','--group',
+        default="all", 
+        type="string", 
+        help="Execute command on group", 
+        dest="group")
+
+    parser.add_option(
+        '-q','--quiet',
+        action="store_false", 
+        help="Display only server output", 
+        dest="verbose", 
+        default=True)
+
+    parser.add_option(
+        '-c','--commandTemplate',
+        default=commandTemplate, 
+        dest="command", 
+        help="The commandline to execute for each host")
+
+    options,args = parser.parse_args()
+    if options.verbose: 
+        print "floep 0.1" 
+
+    if not args :
+        parser.error('no command given')
+
+    command = " ".join(args)
+
+    return options,command
+
+
+def runCommandOnServers(servers,command,options) :
+
+    threadlist = []
+    for server in servers :
+      current = FloepCommand(server,command,options)
+      threadlist.append(current)
+      current.start()
+
+    while threadlist : 
+        for server in threadlist :
+
+            if not server.isAlive():
+                server.join()
+                if options.verbose: 
+                    print "Result from", server.host, ":"
+                print server.result,
+                if options.verbose: 
+                    print ""
+                threadlist.remove(server)
+                break
+
+        else :
+            time.sleep(0.010)
+
+
+commandTemplate = ''
 config = ConfigParser.RawConfigParser()
-config.read(os.path.dirname(sys.argv[0]) + '/floep.cfg')
-config.read('floep.cfg')
 
-if config.has_option('settings','commandTemplate'):
-    commandTemplate = config.get('settings','commandTemplate')
-else:
-    commandTemplate = 'ssh %(host)s %(command)s'
+def main() :
+    readConfiguration()
+    options,command = parseOptions()
+    servers = getServers(options.group)
+    runCommandOnServers(servers,command,options)
 
-parser = OptionParser(
-    version="floep 0.1",
-    description="Executes a command on multiple hosts"
-)
-parser.disable_interspersed_args()
-parser.add_option(
-    '-g','--group',
-    default="all", 
-    type="string", 
-    help="Execute command on group", 
-    dest="group")
-
-parser.add_option(
-    '-q','--quiet',
-    action="store_false", 
-    help="Display only server output", 
-    dest="verbose", 
-    default=True)
-
-parser.add_option(
-    '-c','--command',
-    default=commandTemplate, 
-    dest="command", 
-    help="The commandline to execute for each host")
-
-options,args = parser.parse_args()
-if options.verbose: 
-    print "floep 0.1" 
-
-if not args :
-    parser.error('no command given')
-
-command = " ".join(args)
-
-
-
-servers = getServers(options.group)
-
-threadlist = []
-for server in servers :
-  current = FloepCommand(server,command)
-  threadlist.append(current)
-  current.start()
-
-while threadlist : 
-    for server in threadlist :
-
-        if not server.isAlive():
-            server.join()
-            if options.verbose: 
-                print "Result from", server.host, ":"
-            print server.result,
-            if options.verbose: 
-                print ""
-            threadlist.remove(server)
-            break
-
-    else :
-        time.sleep(0.010)
-
+if __name__ == "__main__" :
+    main()
 
