@@ -7,11 +7,10 @@ import time
 from threading import Thread
 from optparse import OptionParser
 
-
 def getServers(sectionname) :
 
     servers = [] 
-    if not config.has_section(sectionname): raise 'Server or group ' + sectionname + ' not found in ' + configfile 
+    if not config.has_section(sectionname): raise GroupNotFoundError('Server or group ' + sectionname + ' not found in configuration') 
 
     # Checking if the configuration file has a 'host' section 
     if config.has_option(sectionname,'host'):
@@ -40,6 +39,13 @@ class FloepCommand(Thread) :
         for line in result : strresult+=line 
         self.result = strresult
 
+class GroupNotFoundError(Exception):
+    def __init__(self, value) :
+        self.value = value
+
+    def __str__(self) :
+        return repr(self.value)
+
 config = ConfigParser.RawConfigParser()
 config.read(os.path.dirname(sys.argv[0]) + '/floep.cfg')
 config.read('floep.cfg')
@@ -54,9 +60,26 @@ parser = OptionParser(
     description="Executes a command on multiple hosts"
 )
 parser.disable_interspersed_args()
-parser.add_option('-g','--group',default="all", type="string", help="Execute command on group", dest="group")
-parser.add_option('-q','--quiet',action="store_false", help="Display only server output", dest="verbose", default=True)
-parser.add_option('-c','--command',default=commandTemplate, dest="command", help="The commandline to execute for each host") 
+parser.add_option(
+    '-g','--group',
+    default="all", 
+    type="string", 
+    help="Execute command on group", 
+    dest="group")
+
+parser.add_option(
+    '-q','--quiet',
+    action="store_false", 
+    help="Display only server output", 
+    dest="verbose", 
+    default=True)
+
+parser.add_option(
+    '-c','--command',
+    default=commandTemplate, 
+    dest="command", 
+    help="The commandline to execute for each host")
+
 (options,args) = parser.parse_args()
 
 if options.verbose: 
